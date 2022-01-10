@@ -9,5 +9,5 @@
 4) Advanced change-propagation library? See old observerbl notes for reqs.
 
 ## Stage three
-6) Concurrency at scale: context, healing, observability methods/tools/approaches/diagnostics.
+1) Concurrency at scale: context, healing, observability methods/tools/approaches/diagnostics.
 

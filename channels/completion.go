@@ -5,7 +5,7 @@
 package channerics
 
 /*
-Status: 
+Status:
 Attempted to build with `go test -gcflags=-G=3`
 Backing up to 1.18 beta: https://go.dev/dl/#go1.18beta1
 Note the beta command is in /home/jesse/go.
@@ -18,21 +18,24 @@ Don't forget to uninstall it once done.
 // OrDone streams values from vals until done is closed.
 func OrDone[T any](
 	done <-chan struct{},
-	 vals <-chan T,
+	vals <-chan T,
 ) <-chan T {
 	output := make(chan T)
 
-	go func(){
+	go func() {
 		defer close(output)
 		for {
 			select {
-			case v := <-vals:
+			case v, ok := <-vals:
+				if !ok {
+					return
+				}
 				select {
-				case output <-v:
+				case output <- v:
 				case <-done:
 					return
 				}
-			case <-done: 
+			case <-done:
 				return
 			}
 		}

@@ -69,7 +69,8 @@ func Tee[T any](
 					out1 = nil
 				case out2 <- v:
 					out2 = nil
-				case <- done:
+				case <-done:
+					return
 				}
 			}
 		}
@@ -77,5 +78,3 @@ func Tee[T any](
 
 	return out1, out2
 }
-
-

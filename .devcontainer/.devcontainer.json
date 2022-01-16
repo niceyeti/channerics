@@ -1,5 +1,11 @@
 {
-    "name": "go-master",
+    "build": {
+        "args": {
+            "VARIANT": "latest",
+            "NODE_VERSION": "none"
+        },
+    },
+    "name": "channerics-dev",
     "dockerFile": "Dockerfile",
     "extensions": [
         "golang.go"

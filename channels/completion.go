@@ -4,18 +4,8 @@
 
 package channerics
 
-/*
-Status:
-Attempted to build with `go test -gcflags=-G=3`
-Backing up to 1.18 beta: https://go.dev/dl/#go1.18beta1
-Note the beta command is in /home/jesse/go.
-Try to run it, see what happens...
-
-Installed here: /home/jesse/sdk/go1.18beta1/bin/go
-Don't forget to uninstall it once done.
-*/
-
-// OrDone streams values from vals until done is closed.
+// OrDone streams values from vals until done or vals is closed.
+// OrDone is the counterpart to Send which does the same for a writable channel.
 func OrDone[T any](
 	done <-chan struct{},
 	vals <-chan T,
@@ -42,4 +32,54 @@ func OrDone[T any](
 	}()
 
 	return output
+}
+
+// Any returns a single channel that is closed when any passed channel is closed.
+func Any[T any](chans ...<-chan T) (done <-chan T) {
+	switch len(chans) {
+	case 0:
+		// 0 is the recursive base case, not a plausible user call.
+		done = nil
+	case 1:
+		done = chans[0]
+	case 2:
+		done = eitherDone(chans[0], chans[1])
+	case 3:
+		prefix := eitherDone(chans[0], chans[1])
+		remainder := Any(chans[2:]...)
+		done = eitherDone(prefix, remainder)
+	}
+	return
+}
+
+func eitherDone[T any](ch1, ch2 <-chan T) <-chan T {
+	done := make(chan T)
+
+	go func() {
+		defer close(done)
+		select {
+		case <-ch1:
+		case <-ch2:
+		}
+	}()
+
+	return done
+}
+
+// All returns a channel that is closed when all the passed channels are closed.
+func All[T any](chans ...<-chan T) (done <-chan T) {
+	switch len(chans) {
+	case 0:
+		// 0 is the recursive base case, not a plausible user call.
+		done = nil
+	case 1:
+		done = chans[0]
+	case 2:
+		done = eitherDone(chans[0], chans[1])
+	case 3:
+		prefix := eitherDone(chans[0], chans[1])
+		remainder := Any(chans[2:]...)
+		done = eitherDone(prefix, remainder)
+	}
+	return
 }

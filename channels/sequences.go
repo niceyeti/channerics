@@ -4,19 +4,21 @@
 
 package channerics
 
-// Repeater streams values from the passed generator.
+// Generator streams values via the passed generator until it returns false.
 func Generator[T any](
 	done <-chan struct{},
-	generate func() T,
+	generate func() (T, bool),
 ) <-chan T {
 	ch := make(chan T)
 
 	go func() {
 		defer close(ch)
 
-		for {
+		val, ok := generate()
+		for ok {
 			select {
-			case ch <- generate():
+			case ch <- val:
+				val, ok = generate()
 			case <-done:
 				return
 			}

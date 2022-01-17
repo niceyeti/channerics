@@ -35,21 +35,29 @@ func OrDone[T any](
 }
 
 // Any returns a single channel that is closed when any passed channel is closed.
-func Any[T any](chans ...<-chan T) (done <-chan T) {
+func Any[T any](chans ...<-chan T) <-chan T {
 	switch len(chans) {
 	case 0:
 		// 0 is the recursive base case, not a plausible user call.
-		done = nil
+		return nil
 	case 1:
-		done = chans[0]
+		return chans[0]
 	case 2:
-		done = eitherDone(chans[0], chans[1])
-	case 3:
-		prefix := eitherDone(chans[0], chans[1])
-		remainder := Any(chans[2:]...)
-		done = eitherDone(prefix, remainder)
+		return eitherDone(chans[0], chans[1])
 	}
-	return
+
+	done := make(chan T)
+	func() {
+		defer close(done)
+		select {
+		case <-chans[0]:
+		case <-chans[1]:
+		case <-chans[2]:
+		case <-Any(chans[3:]...):
+		}
+	}()
+
+	return done
 }
 
 func eitherDone[T any](ch1, ch2 <-chan T) <-chan T {
@@ -67,19 +75,16 @@ func eitherDone[T any](ch1, ch2 <-chan T) <-chan T {
 }
 
 // All returns a channel that is closed when all the passed channels are closed.
-func All[T any](chans ...<-chan T) (done <-chan T) {
-	switch len(chans) {
-	case 0:
-		// 0 is the recursive base case, not a plausible user call.
-		done = nil
-	case 1:
-		done = chans[0]
-	case 2:
-		done = eitherDone(chans[0], chans[1])
-	case 3:
-		prefix := eitherDone(chans[0], chans[1])
-		remainder := Any(chans[2:]...)
-		done = eitherDone(prefix, remainder)
-	}
-	return
+// Note: All waits forever if any channel is nil.
+func All[T any](chans ...<-chan T) <-chan T {
+	done := make(chan T)
+
+	go func() {
+		defer close(done)
+		for _, ch := range chans {
+			<-ch
+		}
+	}()
+
+	return done
 }

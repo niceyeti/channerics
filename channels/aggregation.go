@@ -1,18 +1,25 @@
+// Copyright 2022 Jesse Waite
+
 // aggregation.go contains patterns for combining channels: fan-in, etc.
+
+package channerics
 
 import "sync"
 
 // Merge merges multiple channels into a single output chan, also often called 'Fan In'.
-func Merge[T any](done <- chan struct{}, inputs <- chan T ...) {
+func Merge[T any](
+	done <-chan struct{},
+	inputs ...<-chan T,
+) <-chan T {
 	out := make(chan T)
 	var wg sync.WaitGroup
 
-	multiplex := func(in chan T){
+	multiplex := func(in <-chan T) {
 		defer wg.Done()
-		for v := OrDone(done, in) {
+		for v := range OrDone(done, in) {
 			select {
 			case out <- v:
-			case <- done:
+			case <-done:
 			}
 		}
 	}
@@ -24,7 +31,7 @@ func Merge[T any](done <- chan struct{}, inputs <- chan T ...) {
 	}
 
 	// Await done or closure of all inputs.
-	closer := func(){
+	closer := func() {
 		wg.Wait()
 		close(out)
 	}
@@ -38,19 +45,18 @@ func Merge[T any](done <- chan struct{}, inputs <- chan T ...) {
 // for creating a slice of channels that abide the or-done pattern, with the caller
 // responsible for each chans behavior. There doesn't seem to be a more helpful
 // FanOut method, since most of the fan-out pattern is implementing on the user side.
-// TBD: think if there is a more useful FanOut method. This isn't even really a FanOut
-// since there are no go statements here.
+// TBD: think of a more useful FanOut method. This isn't even really a FanOut
+// since there are no go statements below. Write an example.
 func FanOut[T any](
-	done <- chan struct{},
-	next func() chan T],
+	done <-chan struct{},
+	next func() chan T,
 ) (outputs []<-chan T) {
-	ch := next();
+	ch := next()
 	for ch != nil {
 		orDone := OrDone(done, ch)
-		outputs = append(outputs, ch)
+		outputs = append(outputs, orDone)
 		ch = next()
 	}
 
 	return
 }
-

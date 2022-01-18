@@ -1,0 +1,25 @@
+/*
+Still unsure what patterns would be useful here, but this file will
+contain patterns for heartbeats, steward/ward, and similar patterns.
+These are useful in daemons, edge processes, and in layers of a system that depend on some
+potentially misbehaving external dependency that could stop work; another instance might
+be a numerical algorithm that gets stuck in a plateau/basin.
+
+Most of my confusion has to do with ignorance of instances of the pattern.
+Steward/ward sounds more like a simply watchdog, in the sense of deploying some work
+that must also send back heartbeats to ensure it is healthy/running. Such a
+runner/device would be useful at a certain layer in a distributed system, e.g.
+a sidecar proxy beside some process to ensure the process is making progress
+
+This file is tbd; the code here is me trying to sort out the use cases, inputs/outputs,
+reusable idioms, and opportunities for injection.
+
+TODO: enumerate a few use cases for heartbeats and intersect them. This is starting to smell
+like a layer above the channerics library; a user of, not a native construct, but maybe those
+native constructs will become more obvious.
+
+I'm confused about the heart beat pattern described in Concurrency in Go,
+*/
+
+func HeartBeat()
+

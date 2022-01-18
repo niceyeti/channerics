@@ -75,7 +75,7 @@ func eitherDone[T any](ch1, ch2 <-chan T) <-chan T {
 }
 
 // All returns a channel that is closed when all the passed channels are closed.
-// Note: All waits forever if any channel is nil.
+// All waits forever if any channel is nil.
 func All[T any](chans ...<-chan T) <-chan T {
 	done := make(chan T)
 

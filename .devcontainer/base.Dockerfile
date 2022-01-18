@@ -2,6 +2,7 @@
 # This is the base dev image
 
 # [Choice] Go version: 1, 1.16, 1.17, 1-bullseye, 1.16-bullseye, 1.17-bullseye, 1-buster, 1.16-buster, 1.17-buster
+# TODO: update me to 1.18 when released
 ARG VARIANT=1.18beta1-bullseye
 FROM golang:${VARIANT}
 

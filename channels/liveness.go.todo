@@ -21,5 +21,11 @@ native constructs will become more obvious.
 I'm confused about the heart beat pattern described in Concurrency in Go,
 */
 
-func HeartBeat()
+/*
+The best I can come up with so far, and this is directly based off 
+
+*/
+func WithHeartbeat() {
+
+}
 

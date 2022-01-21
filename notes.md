@@ -18,6 +18,40 @@ Go Path:
     * Use `go env GOPATH` and `go help GOPATH`
 
 
+## Generics research
+* Proposed spec: https://go.googlesource.com/proposal/+/refs/heads/master/design/43651-type-parameters.md
+* Generics github issue: https://github.com/golang/go/issues/43651
+* Easy: https://qvault.io/golang/how-to-use-golangs-generics/
+
+### Generics
+1) Interfaces:
+* Interfaces can have type parameters, which then just travel inside the definition:
+    ```
+    type Foo[T comparable] interface {
+        Contains(T) bool
+        Get() T
+        ...
+    }
+    ```
+* Receivers implementing an interface are typed, and the type travels through the definition:
+    ```
+    Correct:
+    func (foo *bar[T any]) SomeMethod(lottaTees []T)
+    
+    Incorrect:
+    func (foo *bar) SomeMethod[T any](bunchaTees []T)
+    ```
+* Type constraints:
+```
+Specify types that implement comparison ops <, >, etc.:
+
+ type Ordered interface {
+    ~int | ~int8 | ~int16 | ~int32 | ~int64 |
+        ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
+        ~float32 | ~float64 |
+        ~string
+}
+```
 
 ## Dev container notes
 Microsoft image tags: https://mcr.microsoft.com/v2/vscode/devcontainers/go/tags/list
@@ -82,7 +116,7 @@ Interesting channel idioms:
         return out
     }
 ```
-3) Use `default` in select statement to make it non-blocking; input will be ready only if it is ready, output will only be sent the first time that would otherwise result in a block:
+3) Use `default` in select statement to make it non-blocking. Input will be ready only if it is ready, output will only be sent the first time that would otherwise result in a block:
 ```
 // Read-if-ready:
 select {
@@ -98,7 +132,10 @@ select {
 }
 // continue other work
 ```
+This technique is used with buffered channels to implement free-lists.
 
+4) Generics and struct/receivers/interfaces
+* TODO: fill this in. It is an important problem that I have yet to see cearly explained.
 
 
 

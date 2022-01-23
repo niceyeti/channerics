@@ -1,4 +1,5 @@
-// freelist.go is for free-list and queues.
+// freelist.go is for free-list.
+// Free-lists are a trivial implementation and may be removed from the lib in the future.
 
 package channerics
 

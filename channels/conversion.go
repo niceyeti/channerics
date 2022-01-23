@@ -2,8 +2,8 @@
 
 package channerics
 
-// AsType takes an channel of interfaces and convert it to any type.
-// Reflection is not used: users must ensure the interface is of type T or this will panic.
+// AsType takes a channel of interfaces and convert it to a specific type.
+// Reflection is not used: callers must know the interfaces are only of type T or this will panic.
 func AsType[T any](
 	done chan struct{},
 	vals chan interface{},
@@ -13,7 +13,7 @@ func AsType[T any](
 	go func() {
 		defer close(ch)
 
-		for v := range vals {
+		for v := range OrDone(done, vals) {
 			select {
 			case ch <- v.(T):
 			case <-done:

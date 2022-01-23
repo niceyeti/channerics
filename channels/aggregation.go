@@ -7,6 +7,8 @@ package channerics
 import "sync"
 
 // Merge merges multiple channels into a single output chan, also often called 'Fan In'.
+// The returned channel closes if done is closed; it also closes if all inputs are closed,
+// but only if all output is drained first.
 func Merge[T any](
 	done <-chan struct{},
 	inputs ...<-chan T,
@@ -20,6 +22,7 @@ func Merge[T any](
 			select {
 			case out <- v:
 			case <-done:
+				return
 			}
 		}
 	}

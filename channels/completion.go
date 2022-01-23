@@ -47,7 +47,7 @@ func Any[T any](chans ...<-chan T) <-chan T {
 	}
 
 	done := make(chan T)
-	func() {
+	go func() {
 		defer close(done)
 		select {
 		case <-chans[0]:
@@ -75,7 +75,7 @@ func eitherDone[T any](ch1, ch2 <-chan T) <-chan T {
 }
 
 // All returns a channel that is closed when all the passed channels are closed.
-// All waits forever if any channel is nil.
+// All waits forever if any channel is nil, and does not wait at all if chans is empty.
 func All[T any](chans ...<-chan T) <-chan T {
 	done := make(chan T)
 

@@ -137,7 +137,8 @@ This technique is used with buffered channels to implement free-lists.
 4) Generics and struct/receivers/interfaces
 * TODO: fill this in. It is an important problem that I have yet to see cearly explained.
 
-
+5) It is okay to not close channels explicitly, and expect them to be closed when they go out of scope for garbage collection.
+However, this applies mostly to tests, otherwise channel closure should be seen as an explicit best-practice, if not simply to show you thought about it.
 
 
 

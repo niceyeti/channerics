@@ -139,6 +139,14 @@ This technique is used with buffered channels to implement free-lists.
 
 5) It is okay to not close channels explicitly, and expect them to be closed when they go out of scope for garbage collection.
 However, this applies mostly to tests, otherwise channel closure should be seen as an explicit best-practice, if not simply to show you thought about it.
+```
+Note that it is only necessary to close a channel if the receiver is looking for a close. Closing the channel is a control signal on the channel indicating that no more data follows. 
+```
 
-
-
+## Library Side Effects, Gotchas
+* TODO: track and fill these out. By doing so I can probably fix or eliminate weird cases, but others will be library choices that will be important to highlight.
+* Be wary of exit and channel-closure patterns. For instance, both Merge and OrDone have these properties:
+    * They close immediately when 'done' is closed.
+    * They do not close immediately when their input(s) channels are closed; instead, output must be drained before these funcs enter a select stmt that includes input channel-closure detection as one of its exit conditions.
+* All never closes if any of its input channels is nil. I'm on the fence about this, but it depends on its foreseen usage.
+    * Would most users find this useful or hazardous?

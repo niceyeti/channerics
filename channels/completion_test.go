@@ -11,6 +11,8 @@ import (
 
 func TestOrDone(t *testing.T) {
 
+	maxWaitForEffect := time.Duration(250) * time.Millisecond
+
 	type foo struct {
 		SomeString string
 		SomeFloat  float64
@@ -38,15 +40,90 @@ func TestOrDone(t *testing.T) {
 			So(v2.SomeFloat, ShouldEqual, 4321)
 		})
 
-		/*
-		   Convey("When no values are sent before done", func(){
+		Convey("When done is already closed", func() {
+			done := make(chan struct{})
+			vals := make(chan *foo)
+			close(done)
+			orDone := OrDone(done, vals)
 
-		   })
+			closedViaDone := false
+			select {
+			case <-orDone:
+				closedViaDone = true
+			case <-time.After(maxWaitForEffect):
+			}
+			So(closedViaDone, ShouldBeTrue)
+		})
 
-		   Convey("When one unread value is sent before done", func(){
+		Convey("When vals are sent but done is closed before they are read", func() {
+			done := make(chan struct{})
+			vals := make(chan *foo)
+			orDone := OrDone(done, vals)
 
-		   })
-		*/
+			select {
+			case vals <- &foo{SomeString: "baz", SomeFloat: 4321}:
+			case <-time.After(maxWaitForEffect):
+				t.Fail()
+			}
+			// Wait a brief period for send to propagate to select stmt within OrDone.
+			close(done)
+
+			closedViaDone := false
+			select {
+			case _, ok := <-orDone:
+				closedViaDone = !ok
+			case <-time.After(maxWaitForEffect):
+			}
+			So(closedViaDone, ShouldBeTrue)
+		})
+
+		Convey("When vals channel is closed before OrDone", func() {
+			done := make(chan struct{})
+			vals := make(chan *foo)
+			close(vals)
+			orDone := OrDone(done, vals)
+
+			closedViaDone := false
+			select {
+			case _, ok := <-orDone:
+				closedViaDone = !ok
+			case <-time.After(maxWaitForEffect):
+			}
+			So(closedViaDone, ShouldBeTrue)
+		})
+
+		Convey("When vals channel is closed after send but before read, output must be drained", func() {
+			done := make(chan struct{})
+			vals := make(chan *foo)
+			orDone := OrDone(done, vals)
+
+			sendCompleted := false
+			select {
+			case vals <- &foo{SomeString: "baz", SomeFloat: 4321}:
+				sendCompleted = true
+			case <-time.After(maxWaitForEffect):
+			}
+			So(sendCompleted, ShouldBeTrue)
+
+			close(vals)
+			// Input is now closed, but output must be drained before detecting input closure.
+			readCompleted := false
+			select {
+			case _, ok := <-orDone:
+				readCompleted = ok
+			case <-time.After(maxWaitForEffect):
+			}
+			So(readCompleted, ShouldBeTrue)
+
+			// Finally, orDone should be closed
+			closedViaOrDone := false
+			select {
+			case _, ok := <-orDone:
+				closedViaOrDone = !ok
+			case <-time.After(maxWaitForEffect):
+			}
+			So(closedViaOrDone, ShouldBeTrue)
+		})
 	})
 }
 
@@ -140,13 +217,38 @@ func TestAll(t *testing.T) {
 	Convey("All tests", t, func() {
 		Convey("When chans is empty", func() {
 			var chans []<-chan struct{}
-			out := All(chans...)
+			done := make(chan struct{})
+			out := All(done, chans...)
 
 			// All's worker is not immediately scheduled, so we must await closure briefly.
 			closedAsExpected := false
 			select {
 			case <-out:
 				closedAsExpected = true
+			case <-time.After(time.Duration(50) * time.Millisecond):
+			}
+
+			So(closedAsExpected, ShouldBeTrue)
+		})
+
+		Convey("When done is closed before All none of the input chans are awaited", func() {
+			chans := []chan struct{}{
+				make(chan struct{}),
+				make(chan struct{}),
+			}
+			inChans := make([]<-chan struct{}, len(chans))
+			for i, ch := range chans {
+				inChans[i] = ch
+			}
+			done := make(chan struct{})
+			out := All(done, inChans...)
+
+			close(done)
+			closedAsExpected := false
+			select {
+			case _, ok := <-out:
+				closedAsExpected = !ok
+			// All's worker is not immediately scheduled, so we must await closure briefly.
 			case <-time.After(time.Duration(50) * time.Millisecond):
 			}
 
@@ -162,17 +264,15 @@ func TestAll(t *testing.T) {
 			for i, ch := range chans {
 				inChans[i] = ch
 			}
-
-			done := All(inChans...)
+			inDone := make(chan struct{})
+			allDone := All(inDone, inChans...)
 
 			// Closing one of the two chans allows out to continue blocking.
 			close(chans[0])
-			// Gives a momentary pause for closure to propagate across go routines.
-			time.Sleep(time.Duration(10) * time.Millisecond)
 			stillBlocking := false
 			select {
-			case <-done:
-			default:
+			case <-allDone:
+			case <-time.After(time.Duration(10) * time.Millisecond):
 				stillBlocking = true
 			}
 			So(stillBlocking, ShouldBeTrue)
@@ -181,11 +281,10 @@ func TestAll(t *testing.T) {
 			close(chans[1])
 			closedViaDone := false
 			select {
-			case _, ok := <-done:
+			case _, ok := <-allDone:
 				closedViaDone = !ok
 			case <-time.After(time.Duration(50) * time.Millisecond):
 			}
-
 			So(closedViaDone, ShouldBeTrue)
 		})
 	})

@@ -4,7 +4,9 @@
 
 ## Stage one
 1) The following patterns: OrDone, Fan Out/In, Cond, Tee, Bridge, Repeater, Generator, Or, Merge, Cancellation, Batcher
-2) Tests (unit and race-detection)
+2) Tests:
+    * unit
+    * race-detection
 
 ## Stage two
 1) First round cleanup and repo re-org

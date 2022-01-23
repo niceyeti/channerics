@@ -10,6 +10,69 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func TestGenerate(t *testing.T) {
+
+	maxWaitForEffect := time.Duration(50) * time.Millisecond
+
+	type foo struct {
+		SomeString string
+		SomeFloat  float64
+	}
+
+	Convey("Generate tests", t, func() {
+		Convey("When done is already closed", func() {
+			i := 0
+			fn := func() (int, bool) {
+				i++
+				return i, true
+			}
+			done := make(chan struct{})
+			close(done)
+			gen := Generator(done, fn)
+
+			closedViaDone := false
+			select {
+			case _, ok := <-gen:
+				closedViaDone = !ok
+			case <-time.After(maxWaitForEffect):
+			}
+			So(closedViaDone, ShouldBeTrue)
+		})
+
+		Convey("When gen is called once then returns false -- happy path", func() {
+			i := 0
+			fn := func() (int, bool) {
+				i++
+				if i == 1 {
+					return 1, true
+				}
+				return i, false
+			}
+			done := make(chan struct{})
+			gen := Generator(done, fn)
+
+			ok := false
+			val := 0
+			select {
+			case val, ok = <-gen:
+			case <-time.After(maxWaitForEffect):
+			}
+			So(ok, ShouldBeTrue)
+			So(val, ShouldEqual, 1)
+
+			ok = false
+			val = 0
+			select {
+			case val, ok = <-gen:
+			case <-time.After(maxWaitForEffect):
+			}
+			So(ok, ShouldBeFalse)
+			So(val, ShouldEqual, 0)
+		})
+
+	})
+}
+
 func TestTee(t *testing.T) {
 
 	type foo struct {

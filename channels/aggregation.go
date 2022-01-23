@@ -43,11 +43,12 @@ func Merge[T any](
 	return out
 }
 
+/*
 // FanOut takes a generator of T chans, wraps each generated channel with OrDone,
 // and returns the slice of chans. This is little more than a convenience function
 // for creating a slice of channels that abide the or-done pattern, with the caller
-// responsible for each chans behavior. There doesn't seem to be a more helpful
-// FanOut method, since most of the fan-out pattern is implementing on the user side.
+// responsible for each chan's behavior. There doesn't seem to be a more helpful
+// FanOut method, since most of the fan-out pattern is implemented on the user side.
 // TBD: think of a more useful FanOut method. This isn't even really a FanOut
 // since there are no go statements below. Write an example.
 func FanOut[T any](
@@ -63,3 +64,4 @@ func FanOut[T any](
 
 	return
 }
+*/

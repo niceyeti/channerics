@@ -11,7 +11,6 @@ import (
 )
 
 func TestGenerate(t *testing.T) {
-
 	maxWaitForEffect := time.Duration(50) * time.Millisecond
 
 	type foo struct {
@@ -68,6 +67,91 @@ func TestGenerate(t *testing.T) {
 			}
 			So(ok, ShouldBeFalse)
 			So(val, ShouldEqual, 0)
+		})
+
+		Convey("When gen is called and done is closed before it returns", func() {
+			done := make(chan struct{})
+			fn := func() (int, bool) {
+				close(done)
+				return 42, true
+			}
+			gen := Generator(done, fn)
+
+			ok := true
+			select {
+			case _, ok = <-gen:
+			case <-time.After(maxWaitForEffect):
+			}
+			// Note: this works because the closing of a channel occurs before any
+			// receive that returns a zero value because the channel was closed.
+			So(ok, ShouldBeFalse)
+		})
+
+		Convey("When gen is called and done is closed before reading output", func() {
+			done := make(chan struct{})
+			fn := func() (int, bool) {
+				return 42, true
+			}
+			gen := Generator(done, fn)
+
+			// Wait a brief period for output to propagate to sending-select statement in Generate.
+			time.Sleep(25 * time.Millisecond)
+			close(done)
+			ok := true
+			select {
+			case _, ok = <-gen:
+			case <-time.After(maxWaitForEffect):
+			}
+			// Note: this works because the closing of a channel occurs before any
+			// receive that returns a zero value because the channel was closed.
+			So(ok, ShouldBeFalse)
+		})
+
+	})
+}
+
+func TestRepeater(t *testing.T) {
+	maxWaitForEffect := time.Duration(50) * time.Millisecond
+
+	Convey("Test Repeater", t, func() {
+		Convey("When done is already closed", func() {
+			done := make(chan struct{})
+			close(done)
+			vals := []string{"abc", "def", "xyz"}
+			out := Repeater(done, vals)
+
+			ok := true
+			select {
+			case _, ok = <-out:
+			case <-time.After(maxWaitForEffect):
+			}
+			So(ok, ShouldBeFalse)
+		})
+
+		Convey("When repeater runs then closes later", func() {
+			done := make(chan struct{})
+			vals := []string{"abc", "def"}
+			out := Repeater(done, vals)
+
+			for i := 0; i < 4; i++ {
+				expectedVal := vals[i%len(vals)]
+				val := ""
+				ok := false
+				select {
+				case val, ok = <-out:
+				case <-time.After(maxWaitForEffect):
+				}
+				So(ok, ShouldBeTrue)
+				So(val, ShouldEqual, expectedVal)
+			}
+
+			close(done)
+			ok := true
+			select {
+			case _, ok = <-out:
+			case <-time.After(maxWaitForEffect):
+			}
+			So(ok, ShouldBeFalse)
 		})
 
 	})

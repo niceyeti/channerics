@@ -22,6 +22,9 @@ Go Path:
 * Proposed spec: https://go.googlesource.com/proposal/+/refs/heads/master/design/43651-type-parameters.md
 * Generics github issue: https://github.com/golang/go/issues/43651
 * Easy: https://qvault.io/golang/how-to-use-golangs-generics/
+* https://benjiv.com/golang-generics-introduction/
+* Other: https://pdos.csail.mit.edu/6.824/
+
 
 ### Generics
 1) Interfaces:
@@ -150,3 +153,5 @@ Note that it is only necessary to close a channel if the receiver is looking for
     * They do not close immediately when their input(s) channels are closed; instead, output must be drained before these funcs enter a select stmt that includes input channel-closure detection as one of its exit conditions.
 * All never closes if any of its input channels is nil. I'm on the fence about this, but it depends on its foreseen usage.
     * Would most users find this useful or hazardous?
+        * The case for nil:
+            * I can pass potentially nil channels if I expect them to be 

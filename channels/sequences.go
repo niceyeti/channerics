@@ -12,20 +12,16 @@ func Generator[T any](
 ) <-chan T {
 	ch := make(chan T)
 
+	// It turns out that synchronizing a synchronous func is difficult, except by brute force.
+	// This code is verbose because this must always give done highest precedence:
+	// 0) output no further items after done is closed
+	// 1) ensure generate is not called if done is closed
+	// 2) check if done afterward, before sending
+	// 3) send or done
 	go func() {
 		defer close(ch)
-
-		/*
-			TODO: simplify. It turns out a synchronous func is difficult to synchronize, except by brute force.
-			This must:
-			1) check if done before calling generate
-			2) check if done afterward
-			3) send or done
-			4) check if done again, since the select for sending may have non-deterministically chosen to send when done was also closed.
-		*/
-
 		for {
-			// Since the call to generate is synchronous, we must check done both before and after.
+			// Since the call to generate is synchronous, we must check if done both before and after.
 			select {
 			case <-done:
 				return
@@ -35,6 +31,9 @@ func Generator[T any](
 			if !ok {
 				return
 			}
+			// Checking done solely gives it has higher precedence than sending.
+			// Otherwise, the sending-select statement will randomly honor done,
+			// when done is already closed.
 			select {
 			case <-done:
 				return

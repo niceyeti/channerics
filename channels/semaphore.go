@@ -15,8 +15,26 @@ type Semaphore struct {
 	safe_closer sync.Once
 }
 
-// NewSemaphore returns a context-sensitive semaphore.
+// NewSemaphore returns a context-sensitive semaphore built on a buffered chan.
 // If n == 0, use sync.Mutex or sync.RWMutex instead.
+// Also note that an idiomatic local semaphore can be written simply:
+//	go func() {
+//		sem := make(chan struct{}, 10)
+//		defer close(sem)
+//		for {
+//			data <- workChan
+//			select {
+//			case ch <- struct{}:
+//			case <-context.Done():
+//				return
+//			}
+//			... do work
+//			work(data)
+//			<-ch
+//		}
+//	}
+//
+
 func NewSemaphore(n int) *Semaphore {
 	return &Semaphore{
 		ch:          make(chan struct{}, n),

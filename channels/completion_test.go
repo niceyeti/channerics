@@ -10,7 +10,6 @@ import (
 )
 
 func TestOrDone(t *testing.T) {
-
 	maxWaitForEffect := time.Duration(250) * time.Millisecond
 
 	type foo struct {

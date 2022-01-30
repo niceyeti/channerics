@@ -12,8 +12,9 @@ func Generator[T any](
 ) <-chan T {
 	ch := make(chan T)
 
-	// It turns out that synchronizing a synchronous func is difficult, except by brute force.
-	// This code is verbose because this must always give done highest precedence:
+	// It turns out that synchronizing a synchronous func is difficult,
+	// except by brute force. This code is verbose because this must always
+	// give 'done' highest precedence:
 	// 0) output no further items after done is closed
 	// 1) ensure generate is not called if done is closed
 	// 2) check if done afterward, before sending
@@ -60,10 +61,6 @@ func Repeater[T any](
 
 	go func() {
 		defer close(ch)
-
-		// Reddit: this function will continue to execute after done is closed
-		// with probability 2^(-n). The select guards are included to ensure
-		// this does not happen.
 
 		for {
 			for _, val := range seq {

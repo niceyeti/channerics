@@ -35,6 +35,7 @@ func Adapter[T1 any, T2 any](
 
 	go func() {
 		defer close(out)
+
 		for val := range OrDone(done, vals) {
 			select {
 			case out <- convertFn(val):

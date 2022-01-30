@@ -23,6 +23,7 @@ func TestTick(t *testing.T) {
 			select {
 			case _, ok = <-ticker:
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(ok, ShouldBeFalse)
 		})
@@ -44,6 +45,7 @@ func TestTick(t *testing.T) {
 			select {
 			case _, ok = <-ticker:
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(ok, ShouldBeFalse)
 		})
@@ -74,6 +76,7 @@ func TestTick(t *testing.T) {
 			select {
 			case _, ok = <-ticker:
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(ok, ShouldBeFalse)
 		})

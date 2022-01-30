@@ -20,21 +20,18 @@ func TestConverters(t *testing.T) {
 			close(done)
 			var out <-chan string = AsType[string](done, in)
 
-			closedViaTimeout := false
 			isOpen := true
 			select {
 			case _, isOpen = <-out:
 			case <-time.After(time.Duration(250) * time.Millisecond):
-				closedViaTimeout = true
+				t.FailNow()
 			}
-			So(closedViaTimeout, ShouldBeFalse)
 			So(isOpen, ShouldBeFalse)
 		})
 
 		Convey("AsType is called when done closed between send and receive", func() {
 			done := make(chan struct{})
 			in := make(chan interface{})
-
 			var out <-chan string = AsType[string](done, in)
 
 			// Await send
@@ -51,22 +48,19 @@ func TestConverters(t *testing.T) {
 			close(done)
 
 			closedViaDone := false
-			closedViaTimeout := false
 			select {
 			case _, ok := <-out:
 				closedViaDone = !ok
 			case <-time.After(time.Duration(250) * time.Millisecond):
-				closedViaTimeout = true
+				t.FailNow()
 			}
 
 			So(closedViaDone, ShouldBeTrue)
-			So(closedViaTimeout, ShouldBeFalse)
 		})
 
 		Convey("AsType is called and values are sent and received -- happy path", func() {
 			done := make(chan struct{})
 			in := make(chan interface{})
-
 			var out <-chan string = AsType[string](done, in)
 
 			// Await send
@@ -80,13 +74,11 @@ func TestConverters(t *testing.T) {
 
 			ok := false
 			val := ""
-			timedOut := false
 			select {
 			case val, ok = <-out:
 			case <-time.After(time.Duration(250) * time.Millisecond):
-				timedOut = true
+				t.FailNow()
 			}
-			So(timedOut, ShouldBeFalse)
 			So(ok, ShouldBeTrue)
 			So(val, ShouldEqual, "success")
 		})
@@ -98,49 +90,13 @@ func TestConverters(t *testing.T) {
 			close(in)
 			var out <-chan string = AsType[string](done, in)
 
-			closedViaTimeout := false
 			isOpen := true
 			select {
 			case _, isOpen = <-out:
 			case <-time.After(time.Duration(250) * time.Millisecond):
-				closedViaTimeout = true
+				t.FailNow()
 			}
-			So(closedViaTimeout, ShouldBeFalse)
 			So(isOpen, ShouldBeFalse)
-		})
-
-		Convey("AsType is called when input is closed between send and receive", func() {
-			done := make(chan struct{})
-			in := make(chan interface{})
-
-			var out <-chan string = AsType[string](done, in)
-
-			// Await pending send; the send will panic when we close the channel.
-			var wg sync.WaitGroup
-			wg.Add(1)
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						t.Log("intentional panic recovery")
-					}
-				}()
-				wg.Done()
-				in <- interface{}("string")
-			}()
-			wg.Wait()
-			close(in)
-
-			closedViaDone := false
-			closedViaTimeout := false
-			select {
-			case _, ok := <-out:
-				closedViaDone = !ok
-			case <-time.After(time.Duration(250) * time.Millisecond):
-				closedViaTimeout = true
-			}
-
-			So(closedViaDone, ShouldBeTrue)
-			So(closedViaTimeout, ShouldBeFalse)
 		})
 	})
 
@@ -152,14 +108,12 @@ func TestConverters(t *testing.T) {
 			close(done)
 			var out <-chan string = Adapter(done, in, func(i int) string { return fmt.Sprint(i) })
 
-			closedViaTimeout := false
 			isOpen := true
 			select {
 			case _, isOpen = <-out:
 			case <-time.After(time.Duration(250) * time.Millisecond):
-				closedViaTimeout = true
+				t.FailNow()
 			}
-			So(closedViaTimeout, ShouldBeFalse)
 			So(isOpen, ShouldBeFalse)
 		})
 
@@ -183,16 +137,14 @@ func TestConverters(t *testing.T) {
 			close(done)
 
 			outClosed := false
-			closedViaTimeout := false
 			select {
 			case _, ok := <-out:
 				outClosed = !ok
 			case <-time.After(time.Duration(250) * time.Millisecond):
-				closedViaTimeout = true
+				t.FailNow()
 			}
 
 			So(outClosed, ShouldBeTrue)
-			So(closedViaTimeout, ShouldBeFalse)
 		})
 
 		Convey("Adatper is called and values are sent and received -- happy path", func() {
@@ -212,13 +164,11 @@ func TestConverters(t *testing.T) {
 
 			ok := false
 			val := ""
-			timedOut := false
 			select {
 			case val, ok = <-out:
 			case <-time.After(time.Duration(250) * time.Millisecond):
-				timedOut = true
+				t.FailNow()
 			}
-			So(timedOut, ShouldBeFalse)
 			So(ok, ShouldBeTrue)
 			So(val, ShouldEqual, "123")
 		})
@@ -230,49 +180,13 @@ func TestConverters(t *testing.T) {
 			close(in)
 			var out <-chan string = Adapter(done, in, func(i int) string { return fmt.Sprint(i) })
 
-			closedViaTimeout := false
 			isOpen := true
 			select {
 			case _, isOpen = <-out:
 			case <-time.After(time.Duration(250) * time.Millisecond):
-				closedViaTimeout = true
+				t.FailNow()
 			}
-			So(closedViaTimeout, ShouldBeFalse)
 			So(isOpen, ShouldBeFalse)
-		})
-
-		Convey("Adapter is called when input is closed between send and receive", func() {
-			done := make(chan struct{})
-			in := make(chan int)
-
-			var out <-chan string = Adapter(done, in, func(i int) string { return fmt.Sprint(i) })
-
-			// Await pending send; the send will panic when we close the channel.
-			var wg sync.WaitGroup
-			wg.Add(1)
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						t.Log("intentional panic recovery -- 42 is always correct")
-					}
-				}()
-				wg.Done()
-				in <- 42
-			}()
-			wg.Wait()
-			close(in)
-
-			closedViaDone := false
-			closedViaTimeout := false
-			select {
-			case _, ok := <-out:
-				closedViaDone = !ok
-			case <-time.After(time.Duration(250) * time.Millisecond):
-				closedViaTimeout = true
-			}
-
-			So(closedViaDone, ShouldBeTrue)
-			So(closedViaTimeout, ShouldBeFalse)
 		})
 	})
 

@@ -6,9 +6,9 @@ package channerics
 
 import "sync"
 
-// Merge merges multiple channels into a single output chan, also often called 'Fan In'.
-// The returned channel closes if done is closed; it also closes if all inputs are closed,
-// but only if all output is drained first.
+// Merge merges multiple channels into a single output chan, also often called
+// 'Fan In'. The returned channel closes if done is closed; it also closes if
+// all inputs are closed and all outputs are drained.
 func Merge[T any](
 	done <-chan struct{},
 	inputs ...<-chan T,
@@ -44,7 +44,7 @@ func Merge[T any](
 }
 
 /*
-// FanOut takes a generator of T chans, wraps each generated channel with OrDone,
+// FanOut takes a T chan generator, wraps each generated channel with OrDone,
 // and returns the slice of chans. This is little more than a convenience function
 // for creating a slice of channels that abide the or-done pattern, with the caller
 // responsible for each chan's behavior. There doesn't seem to be a more helpful

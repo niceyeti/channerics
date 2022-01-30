@@ -28,12 +28,21 @@ func TestOrDone(t *testing.T) {
 				vals <- &foo{SomeString: "baz", SomeFloat: 4321}
 			}()
 
-			v1, ok1 := <-orDone
+			var v1, v2 *foo
+			var ok1, ok2 bool
+			select {
+			case v1, ok1 = <-orDone:
+			case <-time.After(maxWaitForEffect):
+				t.FailNow()
+			}
 			So(ok1, ShouldBeTrue)
 			So(v1.SomeString, ShouldEqual, "bar")
 			So(v1.SomeFloat, ShouldEqual, 1234)
 
-			v2, ok2 := <-orDone
+			select {
+			case v2, ok2 = <-orDone:
+			case <-time.After(maxWaitForEffect):
+			}
 			So(ok2, ShouldBeTrue)
 			So(v2.SomeString, ShouldEqual, "baz")
 			So(v2.SomeFloat, ShouldEqual, 4321)
@@ -47,9 +56,10 @@ func TestOrDone(t *testing.T) {
 
 			closedViaDone := false
 			select {
-			case <-orDone:
-				closedViaDone = true
+			case _, ok := <-orDone:
+				closedViaDone = !ok
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(closedViaDone, ShouldBeTrue)
 		})
@@ -62,7 +72,7 @@ func TestOrDone(t *testing.T) {
 			select {
 			case vals <- &foo{SomeString: "baz", SomeFloat: 4321}:
 			case <-time.After(maxWaitForEffect):
-				t.Fail()
+				t.FailNow()
 			}
 			// Wait a brief period for send to propagate to select stmt within OrDone.
 			close(done)
@@ -72,6 +82,7 @@ func TestOrDone(t *testing.T) {
 			case _, ok := <-orDone:
 				closedViaDone = !ok
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(closedViaDone, ShouldBeTrue)
 		})
@@ -87,6 +98,7 @@ func TestOrDone(t *testing.T) {
 			case _, ok := <-orDone:
 				closedViaDone = !ok
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(closedViaDone, ShouldBeTrue)
 		})
@@ -101,6 +113,7 @@ func TestOrDone(t *testing.T) {
 			case vals <- &foo{SomeString: "baz", SomeFloat: 4321}:
 				sendCompleted = true
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(sendCompleted, ShouldBeTrue)
 
@@ -111,6 +124,7 @@ func TestOrDone(t *testing.T) {
 			case _, ok := <-orDone:
 				readCompleted = ok
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(readCompleted, ShouldBeTrue)
 
@@ -120,6 +134,7 @@ func TestOrDone(t *testing.T) {
 			case _, ok := <-orDone:
 				closedViaOrDone = !ok
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(closedViaOrDone, ShouldBeTrue)
 		})

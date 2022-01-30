@@ -46,8 +46,12 @@ func TestMerge(t *testing.T) {
 			}()
 			wg.Wait()
 
+			// We must wait for the value to propagate to the output select stmt.
+			time.Sleep(time.Duration(50) * time.Millisecond)
 			close(done)
-			// We must wait for 'done' closure to propagate to the same select stmt.
+			// Wait again before reading for 'done' closure to propagate; otherwise
+			// the read from output will be ambiguous, as the sending select stmt in
+			// Merge will randomly decide between the send of done cases.
 			time.Sleep(time.Duration(50) * time.Millisecond)
 
 			chanClosed := false
@@ -55,6 +59,7 @@ func TestMerge(t *testing.T) {
 			case _, ok := <-merged:
 				chanClosed = !ok
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 
 			So(chanClosed, ShouldBeTrue)
@@ -74,6 +79,7 @@ func TestMerge(t *testing.T) {
 			case _, ok := <-merged:
 				chanClosed = !ok
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 
 			So(chanClosed, ShouldBeTrue)
@@ -97,6 +103,7 @@ func TestMerge(t *testing.T) {
 			case <-valsSent:
 				sent = true
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(sent, ShouldBeTrue)
 
@@ -118,6 +125,7 @@ func TestMerge(t *testing.T) {
 			case <-valsRead:
 				rxed = true
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(rxed, ShouldBeTrue)
 
@@ -126,6 +134,7 @@ func TestMerge(t *testing.T) {
 			case _, ok := <-merged:
 				chanClosed = !ok
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 
 			So(chanClosed, ShouldBeTrue)
@@ -161,10 +170,12 @@ func TestMerge(t *testing.T) {
 			select {
 			case val, ok = <-merged:
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(ok, ShouldBeTrue)
 
-			// Verify val; there is no promise that output arrives in the order sent, only that both are received.
+			// Verify val; note there is no promise that output arrives in
+			// the order sent, only that both are received.
 			var nextVal string
 			if val == "abc" {
 				So(val, ShouldEqual, "abc")
@@ -177,6 +188,7 @@ func TestMerge(t *testing.T) {
 			select {
 			case val, ok = <-merged:
 			case <-time.After(maxWaitForEffect):
+				t.FailNow()
 			}
 			So(ok, ShouldBeTrue)
 			So(val, ShouldEqual, nextVal)

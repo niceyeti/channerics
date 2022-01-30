@@ -127,6 +127,7 @@ func TestOrDone(t *testing.T) {
 }
 
 func TestAny(t *testing.T) {
+	maxWaitForEffect := time.Duration(100) * time.Millisecond
 
 	Convey("Any tests", t, func() {
 		Convey("When nil channel is passed", func() {
@@ -176,6 +177,39 @@ func TestAny(t *testing.T) {
 				isBlocked = true
 			}
 			So(isBlocked, ShouldBeFalse)
+		})
+
+		Convey("When eitherDone is called -- for coverage", func() {
+			Convey("When first channel is closed first", func() {
+				ch1 := make(chan struct{})
+				ch2 := make(chan struct{})
+				done := eitherDone(ch1, ch2)
+
+				close(ch1)
+				exitedViaDone := false
+				select {
+				case <-done:
+					exitedViaDone = true
+				case <-time.After(maxWaitForEffect):
+				}
+				So(exitedViaDone, ShouldBeTrue)
+			})
+
+			Convey("When second channel is closed first", func() {
+				ch1 := make(chan struct{})
+				ch2 := make(chan struct{})
+				done := eitherDone(ch1, ch2)
+
+				close(ch2)
+				exitedViaDone := false
+				select {
+				case <-done:
+					exitedViaDone = true
+				case <-time.After(maxWaitForEffect):
+				}
+				So(exitedViaDone, ShouldBeTrue)
+			})
+
 		})
 
 		Convey("When several channels are passed", func() {

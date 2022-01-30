@@ -61,11 +61,23 @@ func Repeater[T any](
 	go func() {
 		defer close(ch)
 
-		for _, val := range seq {
-			select {
-			case ch <- val:
-			case <-done:
-				return
+		// Reddit: this function will continue to execute after done is closed
+		// with probability 2^(-n). The select guards are included to ensure
+		// this does not happen.
+
+		for {
+			for _, val := range seq {
+				select {
+				case <-done:
+					return
+				default:
+				}
+
+				select {
+				case ch <- val:
+				case <-done:
+					return
+				}
 			}
 		}
 	}()

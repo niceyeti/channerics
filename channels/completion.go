@@ -76,8 +76,10 @@ func eitherDone[T any](ch1, ch2 <-chan T) <-chan T {
 
 // All returns a channel that is closed when all the passed channels are closed.
 // All waits forever if any channel is nil, and does not wait at all if chans is empty.
-// TODO: add done channel param
-func All[T any](done chan struct{}, chans ...<-chan T) <-chan T {
+func All[T any](
+	done chan struct{},
+	chans ...<-chan T,
+) <-chan T {
 	allDone := make(chan T)
 
 	go func() {

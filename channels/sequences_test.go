@@ -111,7 +111,7 @@ func TestGenerate(t *testing.T) {
 }
 
 func TestRepeater(t *testing.T) {
-	maxWaitForEffect := time.Duration(50) * time.Millisecond
+	maxWaitForEffect := time.Duration(100) * time.Millisecond
 
 	Convey("Test Repeater", t, func() {
 		Convey("When done is already closed", func() {
@@ -145,7 +145,10 @@ func TestRepeater(t *testing.T) {
 				So(val, ShouldEqual, expectedVal)
 			}
 
+			// Wait for next value to propagate to the sending-select stmt in Repeater.
+			<-time.After(maxWaitForEffect)
 			close(done)
+
 			ok := true
 			select {
 			case _, ok = <-out:

@@ -11,10 +11,6 @@ import (
 
 func TestFreeList(t *testing.T) {
 	maxWaitForEffect := time.Duration(250) * time.Millisecond
-	type foo struct {
-		SomeString string
-		SomeFloat  float64
-	}
 
 	Convey("FreeList tests", t, func() {
 		Convey("When we try to init a FreeList of len 0", func() {

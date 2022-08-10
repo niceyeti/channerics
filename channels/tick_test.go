@@ -70,7 +70,7 @@ func TestTick(t *testing.T) {
 			// Drain any pending tick. This must be done since since the inner select
 			// to send the tick may be pending, and the select will non-deterministically
 			// decide whether to send the tick or break on the closure of done.
-			_ = <-ticker
+			<-ticker
 
 			ok := true
 			select {

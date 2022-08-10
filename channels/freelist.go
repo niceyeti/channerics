@@ -7,7 +7,7 @@ import "errors"
 
 // FreeList maintains a list of items for reuse as a strategy to reduce memory
 // memory allocations. It can be implemented using a simple buffered channel.
-// The idea comes from Effective Go, but there may be other sources.
+// The idea comes from Effective Go and other sources.
 type FreeList[T any] interface {
 	// Get an item from the free-list.
 	Get() (T, bool)
@@ -37,7 +37,8 @@ func NewFreeList[T any](
 	}, nil
 }
 
-// Put returns an item to the free-list, if not at capacity.
+// Put returns an item to the free-list if not at capacity and returns true,
+// otherwise does not add 't' and returns false.
 func (fl *freeList[T]) Put(t T) bool {
 	select {
 	case fl.ch <- t:
@@ -48,7 +49,8 @@ func (fl *freeList[T]) Put(t T) bool {
 	return false
 }
 
-// Get returns an item from the free-list or allocates a new one if none are free.
+// Get returns an item from the free-list. Returns true if a new allocation occurred and no items
+// were free, false if the returned item is pre-existing.
 func (fl *freeList[T]) Get() (t T, isNew bool) {
 	select {
 	case t = <-fl.ch:

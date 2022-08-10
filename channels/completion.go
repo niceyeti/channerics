@@ -47,7 +47,8 @@ func OrDone[T any](
 
 // Any returns a single channel that closes when any passed channel is closed.
 // Any blocks forever if chans is empty.
-// The passed channels' sole purpose should be to communicate closure, not transmit data.
+// The passed channels' sole purpose must be to communicate closure, not data.
+// Any does not take a 'done' channel because it can simply be added to the passed chans.
 func Any[T any](
 	chans ...<-chan T,
 ) <-chan T {
@@ -91,7 +92,8 @@ func eitherDone[T any](
 	return done
 }
 
-// All returns a channel that closes when all the passed channels are closed.
+// All returns a channel that closes when all the passed channels close or done is closed.
+// 'Done' is a pre-emption failsafe, in case any passed chans' misbehavior lead to them not closing.
 // All waits forever if any channel is nil, and immediately closes if chans is empty.
 // The passed channels' sole purpose should be to communicate closure, not transmit data.
 func All[T any](
@@ -103,6 +105,9 @@ func All[T any](
 	go func() {
 		defer close(allDone)
 		for _, ch := range chans {
+			// Note: the 'for ok' semantics are used here to support oddball T types which are not
+			// the usual 'struct{}' chan type normally used to communicate closure. Otherwise the
+			// for loop is not needed.
 			ok := true
 			for ok {
 				select {

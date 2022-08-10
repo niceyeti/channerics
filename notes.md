@@ -9,15 +9,6 @@ See these vscode settings:
     go.coverOnSave
     go.testFlags
 
-
-Module: a collection of packages which are released together
-Package: a collection of source files in the same directory, by convention of the same name as the package.
-Module path: declared in go.mod, e.g. `module example.com`, and where the module can be downloaded with `go download`.
-Import path: a packages relative path, prefixed by the module path.
-Go Path:
-    * Use `go env GOPATH` and `go help GOPATH`
-
-
 ## Generics research
 * Proposed spec: https://go.googlesource.com/proposal/+/refs/heads/master/design/43651-type-parameters.md
 * Generics github issue: https://github.com/golang/go/issues/43651
@@ -58,34 +49,25 @@ Specify types that implement comparison ops <, >, etc.:
 
 ## Go Concurrency Rules:
 
-Read, send, and close operations
-
-Read | Behavior
-Buffered    
-Unbuffered
-Nil
-
-
 Based on the [language spec](https://go.dev/ref/spec#Close), this table summarizes behavior for actions at left on the channel types/states at top.
 
 |         | Buffered | Unbuffered | Nil | Closed |
 |---------|----------|------------|-----|-------|
-| *read <-ch* | Value (1) immediate if items buffered (2) after send, if empty or unbuffered (3) If closed, drains buffered values. | Block; returns before send completes | Block forever | Default val (with optional `ok` false)
-| *send ch<-* | Block; send occurs before receive, if capacity | Returns after receive completes | Block forever | Panic (HAZARD: this occurs even if send occurs before closure!)
+| *read <-ch* | Value (1) immediate if items buffered (2) after send if empty or unbuffered (3) drains buffered values before closing. | Block; returns before send returns | Block forever | Default val (with optional `ok` false)
+| *send ch<-* | (1) Block if full; (2) send occurs before receive, if len < cap | Returns after receive completes | Block forever | Panic (even if send occurs before closure!)
 | *close* | Chan returns remaining items, then `ok == false`. | Channel closed. | Panic | Panic |
 | *len* | 0 | Count of buffered items | 0 | 0 (probably unsafe) |
 | *cap* | 0 | Capacity of the channel | 0 | 0 (probably unsafe) |
 
 Some dev rules can be derived directly from this table:
-* Any goroutine sending on a channel is responsible for closing it, since sending requires knowledge of channel state. Hence it should also create the channel.
+* Since sending requires knowledge of the channel state, any goroutine sending on a channel is responsible for closing it. Hence the channel should also be created in the same context as the worker goroutine.
 * Len and cap are always zero for unbuffered channels, even if there is a pending send, since by definition unbuffered means `cap == 0`.
-* For unbuffered channels, sends return after reads complete.
-* There are no 'occurs before' rules for channel closure; i.e. say a goroutine is guaranteed to send before an unbuffered channel is closed; it will still panic from the awaiting send. The same applies to buffered channels if they are **at capacity**, but otherwise they can be drained after closure (which still seems like a code smell).
+* For unbuffered channels, send returns after read completes.
+* There are no 'occurs before' rules for channel closure; i.e. say a goroutine is guaranteed to send before an unbuffered channel is closed; it will still panic from the awaiting send. The same applies to buffered channels **at capacity**, but otherwise their values can be drained after closure (though this drainage issue with buffered channels always seems like a code smell).
 
 Much of these come from the language specification and [The Go Memory Model](https://go.dev/ref/mem).
 It is tempting to claim "if you need to know these in depth, you are being too clever",
-but in the course of writing this library I learned otherwise: it is critically
-important to memorize and understand these rules in depth to ensure certain exit conditions and invariants that could (will) affect system behavior. 
+but in the course of writing this library I learned otherwise. It was critical to memorize and understand these rules in depth to ensure certain exit conditions and invariants that could (will) affect system behavior. 
 
 One hazard is understanding the exit conditions by which composed channels (via workers and select statements) exits via 'done' closure; in many cases, pending values may be received before some top-level channel receive-operation returns `ok == false`. In short, the closure of done may not be an immediate effect in a system, but may need to propagate. When select statements are nested using intermediary channels, a hierarchy of these relationships introduces the non-deterministic pseudo-random behavior of `select` into a system, whereby some pending values may be sent or a `done` closure honored.
 
@@ -96,7 +78,7 @@ One hazard is understanding the exit conditions by which composed channels (via 
 * The go statement that starts a new goroutine happens before the goroutine's execution begins. 
 
 ### Defer
-* Use defer for channel closure. This is just basic defer usage, and guarantees closure even if a panic occurs, to prevent goroutine and context leaks.
+* Use defer for channel closure. This is just basic defer usage, but guarantees closure to prevent goroutine and context leaks, even if a panic occurs.
 
 ### Sync
 * A single call of f() from once.Do(f) returns before any other call of once.Do(f) returns; all other calls block until the first call completes.
@@ -106,8 +88,8 @@ Most of these properties establish the ordering of go routines, when referring t
 * The closing of a channel happens before a receive that returns a zero value because the channel is closed.
 * A send on a channel happens before the corresponding receive from that channel completes. 
 * Buffered channels
-    * Except in special cases, prefer unbuffered channels to buffered since unbuffered properties are more comprehensible and system queueing behavior more easily verified.
-    * The kth receive on a channel with capacity C happens before the k+Cth send from that channel completes. This just says that a full buffered channel has the same behavior as unbuffered channel: a receive occurs before a send completes. It is a perilous property to rely, since it requires one to know when the buffer is full, which seems 'too clever'. One exception is [using a buffered channel as a semaphore]().
+    * Except in special cases, prefer unbuffered channels since unbuffered properties are more comprehensible and make overall system behavior more easily verified.
+    * The kth receive on a channel with capacity C happens before the k+Cth send from that channel completes. This implies that a full buffered channel has the same behavior as an unbuffered channel: a receive occurs before a send completes. For example, if `cap` is 0 (unbuffered) the first receive (k=1) occurs before the k+0=0+1=1st send completes. It is a perilous property to rely on, since it requires one to know when the buffer is full, which seems 'too clever'. One exception is [using a buffered channel as a semaphore]().
 * Unbuffered channels
     * A receive from an unbuffered channel happens before the send on that channel completes. This can be used to establish an ordering between go routines.
 
@@ -130,11 +112,11 @@ Don't use double locking. At the end of The Go Memory Model, the author asserts 
         print(a)
     }
     ```
-The author's primary (unrelated) point is that there is no guarantee that observing the write to `done` implies that `a` has been written, since this ordering is only guaranteed within the context of a single goroutine; otherwise the compiler may order re-order the write operations however it wants, without some synchronization mechanism. 
+The author's primary point is that there is no guarantee that observing the write to `done` implies that `a` has been written, since this ordering is only guaranteed within the context of a single goroutine; otherwise the compiler may order re-order the write operations however it wants, without some synchronization mechanism. 
 
-The assertion about the for-loop not exiting is completely unrelated, and has to do with the possibility that an architecture may registerize `done` on one cpu (the one running the for-loop) without subsequently reaching beyond its cached value to read the new value written by another cpu; i.e., nothing enforces that the compiler should make this value consistent across cpus, similar (but not related) to how `volatile` in C enforces that the compiler does not optimize externally-modifiable memory in a manner that would lead to inconsistency. Thus the assertion is about hardware, not mere language specification. But the above code is obviously dangerous, and should utilize synchronization mechanisms to rule out this possibility, if not simply to make the code comprehensible to other developers.
+The assertion about the for-loop not exiting is completely unrelated, and has to do with the possibility that an architecture may registerize `done` on one cpu (the one running the for-loop) without subsequently reaching beyond its cached value to read the new value written by another cpu; i.e., nothing enforces that the compiler should make this value consistent across cpus, similar (but not related) to how `volatile` in C enforces that the compiler does not optimize externally-modifiable memory in a manner that would lead to inconsistency. Thus the assertion is about hardware, not mere language specification. But the above code is obviously dangerous, and should utilize synchronization mechanisms to rule out this possibility, if not simply to make the code comprehensible.
 
-But it leads to this conclusion, the same as traditional C: when reading golang code, make no assumptions about:
+But it leads to this conclusion, the same as traditional C, that When reading golang code make no assumptions about:
 * the ordering of writes across goroutine boundaries
 * the consistency of memory locations (variable names/addresses) across goroutine boundaries
 Note this just repeats the golang concurrency mantra: "share memory by communicating, don't communicate by sharing memory". For developers, each goroutine can be seen as a cpu-context that ultimately makes no promises about the consistency of its variables w.r.t. other goroutines, except through golang synchronization mechanisms.

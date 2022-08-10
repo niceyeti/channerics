@@ -10,7 +10,7 @@ import "time"
 // See the time.Tick docs for background; timer.Tick does not safely stop, which
 // leads to many misuse-cases. Note that this method introduces some trivial latency
 // between the timer tick and propagation to the output channel. Also, the closure
-// of done may yield one remaining, pending tick depending on whether the inner select
+// of done may yield one remaining pending-tick depending on whether the inner select
 // sending the tick selects the pending-sending case or the done case. However the time
 // value is always guaranteed to be prior to the when close was called, t_tick <= t_closure.
 func NewTicker(
@@ -36,15 +36,7 @@ func NewTicker(
 				return
 			}
 		}
-
 	}()
+
 	return tok
 }
-
-// Tests:
-// 1) happy path
-// 2) done closed before NewTicker called
-// 3) done closed before tick
-// 4) done closed after inner tick but before tick is read
-// 5) done closed immediately
-// 6) nil done channel: expect not to crash, without done semantics (not a real use case, test anyway)

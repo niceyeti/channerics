@@ -13,11 +13,6 @@ import (
 func TestGenerate(t *testing.T) {
 	maxWaitForEffect := time.Duration(50) * time.Millisecond
 
-	type foo struct {
-		SomeString string
-		SomeFloat  float64
-	}
-
 	Convey("Generate tests", t, func() {
 		Convey("When done is already closed", func() {
 			i := 0

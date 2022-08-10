@@ -13,8 +13,8 @@ func Generator[T any](
 	ch := make(chan T)
 
 	// It turns out that synchronizing a synchronous func is difficult,
-	// except by brute force. This code is verbose because this must always
-	// give 'done' highest precedence:
+	// except by brute force. This code is verbose because it must give
+	// highest precedence to 'done':
 	// 0) output no further items after done is closed
 	// 1) ensure generate is not called if done is closed
 	// 2) check if done afterward, before sending
@@ -32,7 +32,7 @@ func Generator[T any](
 			if !ok {
 				return
 			}
-			// Checking done solely gives it has higher precedence than sending.
+			// Checking done here gives it higher precedence than sending.
 			// Otherwise, the sending-select statement will randomly honor done,
 			// when done is already closed.
 			select {
@@ -83,7 +83,7 @@ func Repeater[T any](
 }
 
 // Tee streams input values to both returned output channels.
-// Output must be read from both channels before the next value is sent.
+// Output must be read from both channels before subsequent values are sent.
 func Tee[T any](
 	done <-chan struct{},
 	in <-chan T,
@@ -96,7 +96,7 @@ func Tee[T any](
 		defer close(out2)
 
 		for v := range OrDone(done, in) {
-			var out1, out2 = out1, out2
+			var out1, out2 = out1, out2 // intentional shadowing
 			for i := 0; i < 2; i++ {
 				select {
 				case out1 <- v:

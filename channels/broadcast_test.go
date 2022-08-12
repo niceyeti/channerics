@@ -66,8 +66,12 @@ func TestBroadcast(t *testing.T) {
 
 			close(done)
 			for i := 0; i < 3; i++ {
-				_, ok := <-outputs[i]
-				So(ok, ShouldBeFalse)
+				val, ok := <-outputs[i]
+				if ok {
+					So(val, ShouldEqual, 456)
+				} else {
+					So(val, ShouldEqual, 0)
+				}
 			}
 		})
 	})

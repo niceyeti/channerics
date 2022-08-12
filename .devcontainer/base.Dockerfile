@@ -2,7 +2,7 @@
 # This is the base dev image
 
 # [Choice] Go version: 1, 1.16, 1.17, 1-bullseye, 1.16-bullseye, 1.17-bullseye, 1-buster, 1.16-buster, 1.17-buster
-ARG VARIANT=1.18-bullseye
+ARG VARIANT=1.19-bullseye
 FROM golang:${VARIANT}
 
 # Copy library scripts to execute

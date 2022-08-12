@@ -100,13 +100,13 @@ func TestConverters(t *testing.T) {
 		})
 	})
 
-	Convey("Adapter tests", t, func() {
-		Convey("Adapter is called when done already closed", func() {
+	Convey("Convert tests", t, func() {
+		Convey("Convert is called when done already closed", func() {
 			done := make(chan struct{})
 			in := make(chan int)
 
 			close(done)
-			var out <-chan string = Adapter(done, in, func(i int) string { return fmt.Sprint(i) })
+			var out <-chan string = Convert(done, in, func(i int) string { return fmt.Sprint(i) })
 
 			isOpen := true
 			select {
@@ -117,11 +117,11 @@ func TestConverters(t *testing.T) {
 			So(isOpen, ShouldBeFalse)
 		})
 
-		Convey("Adapter is called when done closed between send and receive", func() {
+		Convey("Convert is called when done closed between send and receive", func() {
 			done := make(chan struct{})
 			in := make(chan int)
 
-			var out <-chan string = Adapter(done, in, func(i int) string { return fmt.Sprint(i) })
+			var out <-chan string = Convert(done, in, func(i int) string { return fmt.Sprint(i) })
 
 			// Await send
 			var wg sync.WaitGroup
@@ -151,7 +151,7 @@ func TestConverters(t *testing.T) {
 			done := make(chan struct{})
 			in := make(chan int)
 
-			var out <-chan string = Adapter(done, in, func(i int) string { return fmt.Sprint(i) })
+			var out <-chan string = Convert(done, in, func(i int) string { return fmt.Sprint(i) })
 
 			// Await send
 			var wg sync.WaitGroup
@@ -173,12 +173,12 @@ func TestConverters(t *testing.T) {
 			So(val, ShouldEqual, "123")
 		})
 
-		Convey("Adapter is called when input is already closed", func() {
+		Convey("Convert is called when input is already closed", func() {
 			done := make(chan struct{})
 			in := make(chan int)
 
 			close(in)
-			var out <-chan string = Adapter(done, in, func(i int) string { return fmt.Sprint(i) })
+			var out <-chan string = Convert(done, in, func(i int) string { return fmt.Sprint(i) })
 
 			isOpen := true
 			select {

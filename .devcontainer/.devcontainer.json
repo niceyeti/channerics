@@ -3,7 +3,7 @@
         "args": {
             "VARIANT": "latest",
             "NODE_VERSION": "none"
-        },
+        }
     },
     "name": "channerics-dev",
     "dockerFile": "Dockerfile",

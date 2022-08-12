@@ -25,9 +25,9 @@ func AsType[T any](
 	return ch
 }
 
-// Adapter returns a channel of vals converted from vals channel using conversionFn,
+// Convert returns a channel of vals converted from vals channel using conversionFn,
 // which must be a fast, non-blocking function.
-func Adapter[T1 any, T2 any](
+func Convert[T1 any, T2 any](
 	done <-chan struct{},
 	vals <-chan T1,
 	convertFn func(T1) T2,
